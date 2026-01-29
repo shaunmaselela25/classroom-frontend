@@ -1,64 +1,45 @@
-import { BaseRecord, DataProvider, GetListParams, GetListResponse } from "@refinedev/core";
-import { Subject } from "../types";
+import { createDataProvider, CreateDataProviderOptions } from "@refinedev/rest";
+import { BACKEND_BASE_URL } from "@/constants";
+import { ListResponse } from "@/types";
 
-// Mock subjects data
-export const mockSubjects: Subject[] = [
-  {
-    id: 1,
-    code: "CS-301",
-    name: "Data Structures and Algorithms",
-    department: "Computer Science",
-    description: "Advanced study of data structures including trees, graphs, and hash tables, along with algorithm design techniques such as divide-and-conquer, dynamic programming, and greedy algorithms.",
-    createdAt: "2025-09-01T08:00:00Z"
+const options: CreateDataProviderOptions = {
+  getList: {
+    getEndpoint: ({ resource }) => resource,
+    buildQueryParams: async ({ resource, pagination, filters }) => {
+      const page = pagination?.currentPage ?? 1;
+      const pageSize = pagination?.pageSize ?? 10;
+
+      const params: Record<string, string | number> = { page, limit: pageSize };
+
+      filters?.forEach((filter) => {
+        const field = 'field' in filter ? filter.field : '';
+        const value = String(filter.value);
+
+        if (resource === 'subjects') {
+          if (field === 'department') {
+            params.department = value;
+          }
+          if (field === 'name' || field === 'code') {
+            params.search = value;
+          }
+        }
+      });
+
+      return params;
+    },
+    mapResponse: async (response) => {
+      const payload: ListResponse = await response.json();
+      return {
+        data: payload.data ?? [],
+      };
+    },
+    getTotalCount: async (response) => {
+      const payload: ListResponse = await response.json();
+      return payload.pagination?.total ?? payload.data?.length ?? 0;
+    },
   },
-  {
-    id: 2,
-    code: "MATH-205",
-    name: "Linear Algebra",
-    department: "Mathematics",
-    description: "Fundamental concepts of vector spaces, linear transformations, matrices, determinants, eigenvalues, and eigenvectors with applications to engineering and data science.",
-    createdAt: "2025-09-01T08:00:00Z"
-  },
-  {
-    id: 3,
-    code: "PHYS-401",
-    name: "Quantum Mechanics",
-    department: "Physics",
-    description: "Introduction to quantum theory covering wave functions, Schrödinger equation, quantum operators, and applications to atomic and molecular systems.",
-    createdAt: "2025-09-01T08:00:00Z"
-  }
-];
-
-export const dataProvider: DataProvider = {
-  getList: async <TData extends BaseRecord = BaseRecord>({
-                                                           resource
-                                                         }: GetListParams): Promise<GetListResponse<TData>> => {
-    if (resource !== 'subjects') {
-      return { data: [] as TData[], total: 0 };
-    }
-
-    return { data: mockSubjects as unknown as TData[], total: mockSubjects.length };
-  },
-
-  getOne: async () => {
-    throw new Error('This function is not present in mock');
-  },
-
-  getMany: async () => {
-    throw new Error('This function is not present in mock');
-  },
-
-  create: async () => {
-    throw new Error('This function is not present in mock');
-  },
-
-  update: async () => {
-    throw new Error('This function is not present in mock');
-  },
-
-  deleteOne: async () => {
-    throw new Error('This function is not present in mock');
-  },
-
-  getApiUrl: () => ''
 };
+
+const { dataProvider } = createDataProvider(BACKEND_BASE_URL, options);
+
+export { dataProvider };
