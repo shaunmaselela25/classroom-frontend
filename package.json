@@ -88,7 +88,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "start": "vite preview",
-    "refine": "refine"
+    "refine": "refine",
+    "devtools": "refine devtools"
   },
   "browserslist": {
     "production": [

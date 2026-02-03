@@ -38,10 +38,13 @@ const SubjectsList = () => {
             },
             {
                 id: 'department',
-                accessorKey: 'department',
+                accessorKey: 'department.name',
                 size: 150,
                 header: () => <p className='column-title'>Department</p>,
-                cell: ({ getValue }) => <Badge variant='secondary'>{getValue<string>()}</Badge>
+                cell: ({ row }) => {
+                    const deptName = row.original.department?.name || 'N/A';
+                    return <Badge variant='secondary'>{deptName}</Badge>;
+                }
             },
             {
                 id: 'description',
@@ -61,16 +64,44 @@ const SubjectsList = () => {
         }
     });
 
+    // Debug logging
+    console.log('Subjects Table Data:', subjectTable.refineCore.tableQuery.data);
+    console.log('Is Loading:', subjectTable.refineCore.tableQuery.isLoading);
+    console.log('Error:', subjectTable.refineCore.tableQuery.error);
+    console.log('Rows:', subjectTable.reactTable.getRowModel().rows);
+
+    const tableData = subjectTable.refineCore.tableQuery.data;
+    const isLoading = subjectTable.refineCore.tableQuery.isLoading;
+    const error = subjectTable.refineCore.tableQuery.error;
+
     return (
         <ListView>
             <Breadcrumb />
 
             <h1 className="page-title">Subjects</h1>
 
+            {/* DEBUG INFO */}
+            <div className="bg-yellow-100 p-4 mb-4 rounded border-2 border-yellow-500">
+                <p><strong>Debug Info:</strong></p>
+                <p>Loading: {isLoading ? 'Yes' : 'No'}</p>
+                <p>Error: {error ? JSON.stringify(error) : 'None'}</p>
+                <p>Data Count: {tableData?.data?.length || 0}</p>
+                <p>Backend URL: {import.meta.env.VITE_BACKEND_BASE_URL}</p>
+                <p>Total: {tableData?.total || 'N/A'}</p>
+                <details className="mt-2">
+                    <summary className="cursor-pointer font-bold">Raw Data (click to expand)</summary>
+                    <pre className="text-xs overflow-auto max-h-60 mt-2 bg-white p-2 rounded">
+                        {JSON.stringify(tableData, null, 2)}
+                    </pre>
+                </details>
+            </div>
+
             <div className="intro-row">
                 <div className="search-field">
                     <Search className="search-icon" />
                     <input
+                        id="subject-search"
+                        name="subject-search"
                         type="text"
                         placeholder="search by name..."
                         className="pl-10 w-full"

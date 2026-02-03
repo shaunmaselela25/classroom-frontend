@@ -1,10 +1,21 @@
+export type Department = {
+    id: number;
+    code: string;
+    name: string;
+    description: string;
+    createdAt?: string;
+    updatedAt?: string;
+};
+
 export type Subject = {
     id: number;
     name: string;
     code: string;
     description: string;
-    department: string;
+    departmentId: number;
+    department?: Department;
     createdAt?: string;
+    updatedAt?: string;
 };
 
 export type ListResponse<T = unknown> = {
@@ -87,12 +98,6 @@ export type Schedule = {
     day: string;
     startTime: string;
     endTime: string;
-};
-
-export type Department = {
-    id: number;
-    name: string;
-    description: string;
 };
 
 export type ClassDetails = {
