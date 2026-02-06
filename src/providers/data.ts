@@ -1,78 +1,99 @@
-import { DataProvider } from "@refinedev/core";
-import { BACKEND_BASE_URL } from "@/constants";
+import {createDataProvider, CreateDataProviderOptions} from "@refinedev/rest";
+import {BACKEND_BASE_URL} from "@/constants";
+import {CreateResponse, GetOneResponse, ListResponse} from "@/types";
+import {HttpError} from "@refinedev/core";
 
-if (!BACKEND_BASE_URL) {
-  throw new Error("BACKEND_BASE_URL is not defined");
-}
+if (!BACKEND_BASE_URL)
+    throw new Error('BACKEND_BASE_URL is not configured. Please set VITE_BACKEND_BASE_URL in your .env file.');
 
-console.log('🌐 Backend Base URL:', BACKEND_BASE_URL);
+const buildHttpError = async (response: Response): Promise<HttpError> => {
+    let message = 'Request failed.';
 
-export const dataProvider: DataProvider = {
-  getList: async ({ resource, pagination, filters, sorters }) => {
-    const page = pagination?.current ?? 1;
-    const pageSize = pagination?.pageSize ?? 10;
+    try {
+        const payload = (await response.json()) as { message?: string }
 
-    const params = new URLSearchParams({
-      page: String(page),
-      limit: String(pageSize),
-    });
 
-    // Add filters
-    filters?.forEach((filter) => {
-      if ('field' in filter && 'value' in filter) {
-        params.append(filter.field, String(filter.value));
-      }
-    });
-
-    const url = `${BACKEND_BASE_URL}/${resource}?${params.toString()}`;
-    console.log('📍 Fetching:', url);
-
-    const response = await fetch(url);
-    const json = await response.json();
-    
-    console.log('📦 Backend response:', json);
-    console.log('📊 Data array:', json.data);
-    console.log('📈 Data length:', json.data?.length);
+        if(payload?.message) message = payload.message;
+    } catch {
+        // Ignore errors
+    }
 
     return {
-      data: json.data || [],
-      total: json.pagination?.total || json.data?.length || 0,
-    };
-  },
+        message,
+        statusCode: response.status
+    }
+}
 
-  getOne: async ({ resource, id }) => {
-    const response = await fetch(`${BACKEND_BASE_URL}/${resource}/${id}`);
-    const json = await response.json();
-    return { data: json.data };
-  },
+const options: CreateDataProviderOptions = {
+    getList: {
+        getEndpoint: ({ resource }) => resource,
 
-  create: async ({ resource, variables }) => {
-    const response = await fetch(`${BACKEND_BASE_URL}/${resource}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(variables),
-    });
-    const json = await response.json();
-    return { data: json.data };
-  },
+        buildQueryParams: async ({ resource, pagination, filters }) => {
+            const page = pagination?.currentPage ?? 1;
+            const pageSize = pagination?.pageSize ?? 10;
 
-  update: async ({ resource, id, variables }) => {
-    const response = await fetch(`${BACKEND_BASE_URL}/${resource}/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(variables),
-    });
-    const json = await response.json();
-    return { data: json.data };
-  },
+            const params: Record<string, string|number> = { page, limit: pageSize };
 
-  deleteOne: async ({ resource, id }) => {
-    const response = await fetch(`${BACKEND_BASE_URL}/${resource}/${id}`, {
-      method: 'DELETE',
-    });
-    const json = await response.json();
-    return { data: json.data };
-  },
+            filters?.forEach((filter) => {
+                const field = 'field' in filter ? filter.field : '';
 
-  getApiUrl: () => BACKEND_BASE_URL,
-};
+                const value = String(filter.value);
+
+                if(resource === 'subjects') {
+                    if(field === 'department') params.department = value;
+                    if(field === 'name' || field === 'code') params.search = value;
+                }
+
+                if(resource === 'classes') {
+                    if(field === 'name') params.search = value;
+                    if(field === 'subject') params.subject = value;
+                    if(field === 'teacher') params.teacher = value;
+                }
+            })
+
+            return params;
+        },
+
+        mapResponse: async (response) => {
+            if(!response.ok) throw await buildHttpError(response);
+
+            const payload: ListResponse = await response.clone().json()
+
+            return payload.data ?? [];
+        },
+
+        getTotalCount: async (response) => {
+            if(!response.ok) throw await buildHttpError(response);
+
+            const payload: ListResponse = await response.clone().json()
+
+            return payload.pagination?.total ?? payload.data?.length ?? 0;
+        }
+    },
+
+    create: {
+        getEndpoint: ({ resource }) => resource,
+
+        buildBodyParams: async ({ variables}) => variables,
+
+        mapResponse: async (response) => {
+            const json: CreateResponse = await response.json();
+
+            return json.data ?? [];
+        }
+    },
+
+    getOne: {
+        getEndpoint: ({ resource, id}) => `${resource}/${id}`,
+
+        mapResponse: async (response) => {
+            const json: GetOneResponse = await response.json();
+
+            return json.data ?? [];
+        }
+    }
+}
+
+const { dataProvider } = createDataProvider(BACKEND_BASE_URL, options);
+
+export { dataProvider };
