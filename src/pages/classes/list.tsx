@@ -18,32 +18,28 @@ const ClassesList = () => {
     const [selectedSubject, setSelectedSubject] = useState('all');
     const [selectedTeacher, setSelectedTeacher] = useState('all');
 
-    const { data: subjectsQuery } = useList<Subject>({
+    const { query: subjectsQuery } = useList<Subject>({
         resource: 'subjects',
         pagination: { pageSize: 100 }
     });
 
-    const { data: teachersQuery } = useList<User>({
+    const { query: teachersQuery } = useList<User>({
         resource: 'users',
-        filters: [
-            { field: 'role', operator: 'eq', value: 'teacher' }
-        ],
+        filters: [{ field: 'role', operator: 'eq', value: 'teacher' }],
         pagination: { pageSize: 100 }
     });
 
-    const subjects = subjectsQuery?.data || [];
-    const teachers = teachersQuery?.data || [];
+    const subjects = subjectsQuery?.data?.data || [];
+    const teachers = teachersQuery?.data?.data || [];
 
     const subjectFilters = selectedSubject === 'all' ? [] : [
-        {field: 'subject.name', operator: 'eq' as const, value: selectedSubject}
+        { field: 'subject', operator: 'eq' as const, value: selectedSubject}
     ];
-
     const teacherFilters = selectedTeacher === 'all' ? [] : [
-        {field: 'teacher.name', operator: 'eq' as const, value: selectedTeacher}
+        { field: 'teacher', operator: 'eq' as const, value: selectedTeacher}
     ];
-
     const searchFilters = searchQuery ? [
-        {field: 'name', operator: 'contains' as const, value: searchQuery}
+        { field: 'name', operator: 'contains' as const, value: searchQuery }
     ] : [];
 
     const classColumns = useMemo<ColumnDef<ClassDetails>[]>(() => [
@@ -108,16 +104,7 @@ const ClassesList = () => {
             id: 'details',
             size: 140,
             header: () => <p className="column-title">Details</p>,
-            cell: ({ row }) => (
-                <ShowButton 
-                    resource="classes" 
-                    recordItemId={row.original.id} 
-                    variant="outline" 
-                    size="sm"
-                >
-                    View
-                </ShowButton>
-            )
+            cell: ({ row }) => <ShowButton resource="classes" recordItemId={row.original.id} variant="outline" size="sm">View</ShowButton>
         }
     ], []);
 
@@ -144,67 +131,68 @@ const ClassesList = () => {
             <h1 className="page-title">Classes</h1>
 
             <div className="intro-row">
-                <p>Manage your Classes, Subjects and Teachers</p>
-            </div>
+                <p>Manage your classes, subjects, and teachers.</p>
 
-            <div className="actions-row">
-                <div className="search-field">
-                    <Search className="search-icon" />
-                    <Input
-                        type="text"
-                        placeholder="Search by name..."
-                        className="pl-10 w-full"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                </div>
+                <div className="actions-row">
+                    <div className="search-field">
+                        <Search className="search-icon" />
 
-                <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                    <Select
-                        value={selectedSubject}
-                        onValueChange={setSelectedSubject}
-                    >
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Filter by subject" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">
-                                All Subjects
-                            </SelectItem>
-                            {subjects.map(subject => (
-                                <SelectItem key={subject.id} value={subject.name}>
-                                    {subject.name}
+                        <Input
+                            type="text"
+                            placeholder="Search by name..."
+                            className="pl-10 w-full"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                        <Select
+                            value={selectedSubject} onValueChange={setSelectedSubject}
+                        >
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Filter by subject" />
+                            </SelectTrigger>
+
+                            <SelectContent>
+                                <SelectItem value="all">
+                                    All Subjects
                                 </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                                {subjects.map(subject => (
+                                    <SelectItem key={subject.id} value={subject.name}>
+                                        {subject.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
 
-                    <Select
-                        value={selectedTeacher}
-                        onValueChange={setSelectedTeacher}
-                    >
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Filter by teacher" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">
-                                All Teachers
-                            </SelectItem>
-                            {teachers.map(teacher => (
-                                <SelectItem key={teacher.id} value={teacher.name}>
-                                    {teacher.name}
+                        <Select
+                            value={selectedTeacher} onValueChange={setSelectedTeacher}
+                        >
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Filter by teacher" />
+                            </SelectTrigger>
+
+                            <SelectContent>
+                                <SelectItem value="all">
+                                    All Teachers
                                 </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                                {teachers.map(teacher => (
+                                    <SelectItem key={teacher.id} value={teacher.name}>
+                                        {teacher.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
 
-                    <CreateButton resource="classes" />
+                        <CreateButton resource="classes" />
+                    </div>
                 </div>
             </div>
 
             <DataTable table={classTable} />
         </ListView>
-    );
+    )
 }
 
-export default ClassesList;
+export default ClassesList
