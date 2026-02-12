@@ -3,28 +3,25 @@ import { BACKEND_BASE_URL } from "@/constants";
 import { CreateResponse, GetOneResponse, ListResponse } from "@/types";
 import { HttpError } from "@refinedev/core";
 
-if (!BACKEND_BASE_URL)
+if (!BACKEND_BASE_URL) {
     throw new Error('BACKEND_BASE_URL is not configured. Please set VITE_BACKEND_BASE_URL in your .env file.');
+}
 
+// Helper to build HttpError
 const buildHttpError = async (response: Response): Promise<HttpError> => {
     let message = 'Request failed.';
-
     try {
         const payload = (await response.json()) as { message?: string };
         if (payload?.message) message = payload.message;
     } catch {
         // Ignore JSON parse errors
     }
-
-    return {
-        message,
-        statusCode: response.status
-    };
+    return { message, statusCode: response.status };
 };
 
 const options: CreateDataProviderOptions = {
     getList: {
-        getEndpoint: ({ resource }) => `api/${resource}`,
+        getEndpoint: ({ resource }) => `${resource}`, // Refine will append to BASE_URL
 
         buildQueryParams: async ({ resource, pagination, filters }) => {
             const page = pagination?.currentPage ?? 1;
@@ -55,6 +52,7 @@ const options: CreateDataProviderOptions = {
             if (!response.ok) throw await buildHttpError(response);
 
             const payload: ListResponse = await response.clone().json();
+
             return payload.data ?? [];
         },
 
@@ -62,32 +60,33 @@ const options: CreateDataProviderOptions = {
             if (!response.ok) throw await buildHttpError(response);
 
             const payload: ListResponse = await response.clone().json();
-            return payload.pagination?.total ?? payload.data?.length ?? 0;
-        }
-    },
 
-    create: {
-        getEndpoint: ({ resource }) => `api/${resource}`,
-
-        buildBodyParams: async ({ variables }) => variables,
-
-        mapResponse: async (response) => {
-            const json: CreateResponse = await response.json();
-            return json.data ?? [];
-        }
+            // The backend sends total as a string sometimes, convert to number
+            return payload.pagination?.total ? Number(payload.pagination.total) : payload.data?.length ?? 0;
+        },
     },
 
     getOne: {
-        getEndpoint: ({ resource, id }) => `api/${resource}/${id}`,
-
+        getEndpoint: ({ resource, id }) => `${resource}/${id}`,
         mapResponse: async (response) => {
             const json: GetOneResponse = await response.json();
             return json.data ?? [];
-        }
-    }
+        },
+    },
+
+    create: {
+        getEndpoint: ({ resource }) => `${resource}`,
+        buildBodyParams: async ({ variables }) => variables,
+        mapResponse: async (response) => {
+            const json: CreateResponse = await response.json();
+            return json.data ?? [];
+        },
+    },
 };
 
+// Initialize the dataProvider with BASE_URL
 const { dataProvider } = createDataProvider(BACKEND_BASE_URL, options);
 
 export { dataProvider };
+
 
