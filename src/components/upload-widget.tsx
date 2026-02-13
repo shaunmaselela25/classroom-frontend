@@ -1,6 +1,6 @@
 import {useEffect, useRef, useState} from 'react'
-import {UploadWidgetValue} from "@/types";
-import {UploadCloud} from "lucide-react";
+import { UploadWidgetValue } from "@/types";
+import { UploadCloud } from "lucide-react";
 import {CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET} from "@/constants";
 
 const UploadWidget = ({ value = null, onChange, disabled = false }) => {
